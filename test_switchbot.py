@@ -42,6 +42,7 @@ class SwitchBotTest(unittest.TestCase):
             "リビング温湿度計（MeterPro）: 温度 22.5℃ 湿度 41% 電池 90%",
         )
         self.assertIn("CO2 820ppm", switchbot.format_meter(results[1]))
+        self.assertIn("T", results[0]["readAt"])
 
     def test_query(self):
         results = switchbot.read_meters(FakeClient(), "リビング")

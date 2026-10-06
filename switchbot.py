@@ -17,6 +17,7 @@
 
 import argparse
 import base64
+import datetime
 import hashlib
 import hmac
 import json
@@ -118,6 +119,7 @@ def read_meters(client, query=None):
             + ("名前を確認してください。" if query else "クラウドサービスが有効か確認してください。")
         )
     results = []
+    read_at = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat(timespec="seconds")
     for d in meters:
         s = client.status(d["deviceId"])
         results.append({
@@ -128,6 +130,7 @@ def read_meters(client, query=None):
             "humidity": s.get("humidity"),
             "battery": s.get("battery"),
             "CO2": s.get("CO2"),
+            "readAt": read_at,
         })
     return results
 

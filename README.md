@@ -33,6 +33,15 @@ python3 switchbot.py meter --json     # JSON で出力
 
 Claude Code では `.claude/skills/switchbot-meter/` のスキルが入っているので、「部屋の湿度は？」と聞くだけで読みにいきます。
 
+## ダッシュボード（Artifact）
+
+温湿度計の値を部屋ごとに見られるページ「おうちの空気」を Artifact として公開しています（非公開・オーナーのみ閲覧可）。
+
+- ページ: https://claude.ai/artifact/F28YFnPuCqpMHncUUCyXtc
+- ソース: `dashboard/switchbot-dashboard.html`
+
+ページ自体は SwitchBot API に直接つながりません（トークンをブラウザに置かないため）。Claude Code に「ダッシュボードを更新して」と頼むと、`.claude/skills/switchbot-dashboard/` のスキルが `switchbot.py meter --json` の結果をページのデータベースに書き込みます。定期的に更新したいときは、トークンとネットワーク許可を設定した環境で Routine（定期実行）からこの依頼を送ってください。
+
 ## テスト
 
 ```bash

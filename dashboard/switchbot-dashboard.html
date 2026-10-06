@@ -1,0 +1,241 @@
+<title>おうちの空気</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 見出し行 → 全体サマリー → 部屋ごとのカード（温度を大きく、湿度は快適帯つきのゲージ） */
+:root {
+  --bg: #f3f6f7;
+  --surface: #ffffff;
+  --ink: #17252b;
+  --muted: #5d6f76;
+  --line: #d9e2e5;
+  --accent: #1f7a8c;
+  --accent-soft: #dcecef;
+  --ok: #2e7d4f;
+  --warn: #a8640a;
+  --bad: #b3362b;
+  --warn-soft: #f7ead6;
+  --bad-soft: #f6dedb;
+  --ok-soft: #dcefe3;
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", system-ui, sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1719; --surface: #172226; --ink: #e4eef0; --muted: #94a8ae; --line: #2a3a3f;
+    --accent: #5fb8c9; --accent-soft: #1d3a41; --ok: #6cc592; --warn: #e2a24c; --bad: #ef7d70;
+    --warn-soft: #3a2d18; --bad-soft: #3d201d; --ok-soft: #183226; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1719; --surface: #172226; --ink: #e4eef0; --muted: #94a8ae; --line: #2a3a3f;
+  --accent: #5fb8c9; --accent-soft: #1d3a41; --ok: #6cc592; --warn: #e2a24c; --bad: #ef7d70;
+  --warn-soft: #3a2d18; --bad-soft: #3d201d; --ok-soft: #183226; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 28px 16px 48px; display: grid; gap: 24px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+h1 { font-family: var(--font-display); font-size: 1.75rem; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.updated { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.summary { margin: 0; font-size: 1rem; color: var(--ink); max-width: 65ch; }
+.summary:empty { display: none; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; display: grid; gap: 14px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.room { font-weight: 700; font-size: 1.05rem; margin: 0; overflow-wrap: anywhere; }
+.model { color: var(--muted); font-size: .75rem; letter-spacing: .04em; font-family: var(--font-data); }
+.temp { font-family: var(--font-data); font-weight: 600; font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.temp small { font-size: 1rem; font-weight: 400; color: var(--muted); margin-left: 2px; }
+.row { display: grid; gap: 6px; }
+.row-label { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); }
+.row-label b { font-family: var(--font-data); color: var(--ink); font-size: .95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gauge { position: relative; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.gauge .band { position: absolute; top: 0; bottom: 0; left: 40%; width: 20%; background: var(--accent-soft); }
+.gauge .fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--accent); border-radius: 4px; }
+.scale { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: .68rem; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: .75rem; padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); font-variant-numeric: tabular-nums; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.advice { margin: 0; font-size: .85rem; color: var(--muted); }
+.advice:empty { display: none; }
+.spark { width: 100%; height: 44px; display: block; }
+.spark-cap { font-size: .7rem; color: var(--muted); font-family: var(--font-data); display: flex; justify-content: space-between; }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 10px; max-width: 65ch; }
+.empty h2 { margin: 0; font-size: 1.1rem; }
+.empty p, .empty ol { margin: 0; color: var(--muted); }
+.empty code, footer code { font-family: var(--font-data); font-size: .85em; background: var(--accent-soft); color: var(--ink); padding: 1px 5px; border-radius: 4px; }
+footer { color: var(--muted); font-size: .8rem; max-width: 65ch; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>おうちの空気</h1>
+    <span class="updated" id="updated">読み込み中…</span>
+  </header>
+  <p class="summary" id="summary"></p>
+
+  <section class="empty" id="empty">
+    <h2>まだ温湿度計のデータがありません</h2>
+    <p>SwitchBot の温湿度計を読んだ結果がここに部屋ごとに並びます。最初のデータは Claude Code から入れます。</p>
+    <ol>
+      <li>Claude Code の環境に <code>SWITCHBOT_TOKEN</code> と <code>SWITCHBOT_SECRET</code> を設定し、<code>api.switch-bot.com</code> への通信を許可します。</li>
+      <li>Smarthome リポジトリで「ダッシュボードを更新して」と頼みます。</li>
+    </ol>
+  </section>
+
+  <section class="grid" id="grid" aria-live="polite"></section>
+
+  <footer>湿度ゲージの色の濃い帯は快適とされる 40〜60% の範囲です。CO2 は 1000ppm を超えると換気の目安です。</footer>
+</div>
+
+<script>
+(function () {
+  var grid = document.getElementById("grid");
+  var empty = document.getElementById("empty");
+  var updated = document.getElementById("updated");
+  var summary = document.getElementById("summary");
+  var STALE_MS = 2 * 60 * 60 * 1000;
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function num(v) { return typeof v === "number" && isFinite(v) ? v : null; }
+  function fmtTime(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return null;
+    return d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+
+  function assess(m) {
+    var notes = [], chips = [];
+    var h = num(m.humidity), co2 = num(m.CO2), bat = num(m.battery);
+    if (h != null) {
+      if (h < 40) { chips.push(["乾燥気味", "warn"]); notes.push("加湿すると楽になります。"); }
+      else if (h > 60) { chips.push(["多湿気味", "warn"]); notes.push("除湿か換気をおすすめします。"); }
+      else chips.push(["湿度ちょうどいい", "ok"]);
+    }
+    if (co2 != null) {
+      if (co2 > 1000) { chips.push(["CO2 " + co2 + "ppm", "bad"]); notes.push("CO2 が高めです。窓を開けて換気しましょう。"); }
+      else chips.push(["CO2 " + co2 + "ppm", "ok"]);
+    }
+    if (bat != null) {
+      if (bat <= 20) { chips.push(["電池 " + bat + "%", "bad"]); notes.push("電池が残りわずかです。交換してください。"); }
+      else chips.push(["電池 " + bat + "%", ""]);
+    }
+    var t = m.readAt ? new Date(m.readAt).getTime() : NaN;
+    if (!isNaN(t) && Date.now() - t > STALE_MS) chips.push(["2時間以上前の値", "warn"]);
+    return { chips: chips, notes: notes };
+  }
+
+  function sparkline(history) {
+    var pts = (Array.isArray(history) ? history : [])
+      .map(function (p) { return { t: new Date(p && p.t).getTime(), v: num(p && p.temperature) }; })
+      .filter(function (p) { return !isNaN(p.t) && p.v != null; })
+      .sort(function (a, b) { return a.t - b.t; });
+    if (pts.length < 2) return null;
+    var W = 300, H = 44, P = 4;
+    var t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    var vs = pts.map(function (p) { return p.v; });
+    var lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
+    if (hi - lo < 1) { var mid = (hi + lo) / 2; lo = mid - 0.5; hi = mid + 0.5; }
+    function x(t) { return P + (W - 2 * P) * (t1 === t0 ? 1 : (t - t0) / (t1 - t0)); }
+    function y(v) { return H - P - (H - 2 * P) * (v - lo) / (hi - lo); }
+    var line = pts.map(function (p, i) { return (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.v).toFixed(1); }).join(" ");
+    var area = line + " L" + x(t1).toFixed(1) + " " + (H - P) + " L" + x(t0).toFixed(1) + " " + (H - P) + " Z";
+    var last = pts[pts.length - 1];
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("class", "spark");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "温度の推移 " + lo.toFixed(1) + "℃〜" + hi.toFixed(1) + "℃");
+    var a = document.createElementNS(ns, "path");
+    a.setAttribute("d", area); a.setAttribute("fill", "var(--accent-soft)");
+    var l = document.createElementNS(ns, "path");
+    l.setAttribute("d", line); l.setAttribute("fill", "none"); l.setAttribute("stroke", "var(--accent)");
+    l.setAttribute("stroke-width", "1.6"); l.setAttribute("vector-effect", "non-scaling-stroke");
+    var c = document.createElementNS(ns, "circle");
+    c.setAttribute("cx", x(last.t)); c.setAttribute("cy", y(last.v)); c.setAttribute("r", "2.6");
+    c.setAttribute("fill", "var(--accent)");
+    svg.append(a, l, c);
+    var wrap = el("div", "row");
+    var cap = el("div", "spark-cap");
+    cap.append(el("span", null, "温度の推移"), el("span", null, Math.min.apply(null, vs).toFixed(1) + "–" + Math.max.apply(null, vs).toFixed(1) + "℃"));
+    wrap.append(svg, cap);
+    return wrap;
+  }
+
+  function card(m) {
+    var c = el("article", "card");
+    var head = el("div", "card-head");
+    var names = el("div");
+    names.append(el("h2", "room", m.name || "名前のない温湿度計"), el("div", "model", m.deviceType || ""));
+    head.append(names);
+    var temp = num(m.temperature);
+    var t = el("div", "temp", temp != null ? temp.toFixed(1) : "—");
+    t.append(el("small", null, "℃"));
+    head.append(t);
+    c.append(head);
+
+    var h = num(m.humidity);
+    if (h != null) {
+      var row = el("div", "row");
+      var lab = el("div", "row-label");
+      lab.append(el("span", null, "湿度"), el("b", null, h + "%"));
+      var g = el("div", "gauge");
+      g.setAttribute("role", "meter"); g.setAttribute("aria-valuemin", "0"); g.setAttribute("aria-valuemax", "100");
+      g.setAttribute("aria-valuenow", String(h)); g.setAttribute("aria-label", "湿度");
+      var fill = el("div", "fill"); fill.style.width = Math.max(0, Math.min(100, h)) + "%";
+      g.append(el("div", "band"), fill);
+      var sc = el("div", "scale");
+      ["0", "40", "60", "100%"].forEach(function (s) { sc.append(el("span", null, s)); });
+      row.append(lab, g, sc);
+      c.append(row);
+    }
+
+    var sp = sparkline(m.history);
+    if (sp) c.append(sp);
+
+    var a = assess(m);
+    var chips = el("div", "chips");
+    a.chips.forEach(function (ch) { chips.append(el("span", "chip " + ch[1], ch[0])); });
+    if (a.chips.length) c.append(chips);
+    c.append(el("p", "advice", a.notes.join(" ")));
+    return c;
+  }
+
+  function render(meters) {
+    grid.replaceChildren();
+    empty.hidden = meters.length > 0;
+    if (!meters.length) { updated.textContent = "データ待ち"; summary.textContent = ""; return; }
+    meters.forEach(function (m) { grid.append(card(m)); });
+    var latest = meters.map(function (m) { return new Date(m.readAt).getTime(); })
+      .filter(function (t) { return !isNaN(t); }).sort().pop();
+    updated.textContent = latest ? "最終更新 " + fmtTime(new Date(latest).toISOString()) : "";
+    var warn = meters.filter(function (m) { return assess(m).notes.length; });
+    summary.textContent = warn.length
+      ? warn.map(function (m) { return (m.name || "温湿度計") + "：" + assess(m).notes[0]; }).join("　")
+      : meters.length + " 部屋とも快適な範囲です。";
+  }
+
+  render([]);
+  updated.textContent = "読み込み中…";
+
+  if (!window.claude || !window.claude.use) { updated.textContent = "表示専用"; return; }
+  window.claude.use("db").then(function (db) {
+    if (!db) { updated.textContent = "サインインするとデータが表示されます"; return; }
+    db.collection("meters").orderBy("name").onSnapshot(function (snap) {
+      render(snap.docs.map(function (d) { return d.data() || {}; }));
+    }, function (e) {
+      updated.textContent = "データを読み込めませんでした（" + (e && e.code || "error") + "）";
+    });
+  });
+})();
+</script>
