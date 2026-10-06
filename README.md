@@ -1,7 +1,7 @@
 # smarthome
 
 Claude Code から SwitchBot API（v1.1）でスマートホーム機器を扱うためのリポジトリです。
-いまは温湿度計（温湿度計Pro など）の値を読むことに対応しています。標準ライブラリだけで動きます（Python 3.8 以上）。
+いまは温湿度計（温湿度計Pro など）の値と、電池で動く機器の電池残量を読むことに対応しています。標準ライブラリだけで動きます（Python 3.8 以上）。
 
 ## 準備
 
@@ -23,6 +23,7 @@ python3 switchbot.py devices          # デバイス一覧
 python3 switchbot.py meter            # 温湿度計をすべて読む
 python3 switchbot.py meter リビング    # 名前で絞り込む
 python3 switchbot.py meter --json     # JSON で出力
+python3 switchbot.py battery          # 電池で動く機器の残量（少ない順、20%以下に印）
 ```
 
 出力例:

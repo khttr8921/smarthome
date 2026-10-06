@@ -13,6 +13,7 @@
   python3 switchbot.py meter              # 温湿度計をすべて読む
   python3 switchbot.py meter リビング      # 名前（または ID）で絞り込む
   python3 switchbot.py meter --json       # JSON で出力
+  python3 switchbot.py battery            # 電池で動く機器の残量
 """
 
 import argparse
@@ -38,6 +39,25 @@ METER_TYPES = {
     "WoIOSensor",
     "Hub 2",
 }
+
+
+# 電池で動き、ステータスに battery を返すデバイスの種類
+BATTERY_TYPES = METER_TYPES - {"Hub 2"} | {
+    "Bot",
+    "Curtain",
+    "Curtain3",
+    "Blind Tilt",
+    "Roller Shade",
+    "Motion Sensor",
+    "Contact Sensor",
+    "Water Detector",
+    "Smart Lock",
+    "Smart Lock Pro",
+    "Keypad",
+    "Keypad Touch",
+}
+
+LOW_BATTERY = 20
 
 
 class SwitchBotError(Exception):
@@ -132,6 +152,31 @@ def read_meters(client, query=None):
     return results
 
 
+def read_batteries(client):
+    """電池で動く機器の残量を、少ない順に返す。"""
+    results = []
+    for d in client.devices():
+        if d.get("deviceType") not in BATTERY_TYPES:
+            continue
+        battery = client.status(d["deviceId"]).get("battery")
+        if battery is None:
+            continue
+        results.append({
+            "name": d.get("deviceName"),
+            "deviceId": d["deviceId"],
+            "deviceType": d.get("deviceType"),
+            "battery": battery,
+            "low": battery <= LOW_BATTERY,
+        })
+    results.sort(key=lambda r: r["battery"])
+    return results
+
+
+def format_battery(r):
+    line = f"{r['name']}（{r['deviceType']}）: 電池 {r['battery']}%"
+    return line + " ← 交換してください" if r["low"] else line
+
+
 def format_meter(r):
     parts = [f"{r['name']}（{r['deviceType']}）:"]
     if r["temperature"] is not None:
@@ -156,6 +201,9 @@ def main(argv=None):
     p_meter.add_argument("query", nargs="?", help="デバイス名の一部、または deviceId")
     p_meter.add_argument("--json", action="store_true")
 
+    p_bat = sub.add_parser("battery", help="電池で動く機器の残量を表示")
+    p_bat.add_argument("--json", action="store_true")
+
     args = parser.parse_args(argv)
 
     try:
@@ -174,6 +222,13 @@ def main(argv=None):
             else:
                 for r in results:
                     print(format_meter(r))
+        elif args.cmd == "battery":
+            results = read_batteries(client)
+            if args.json:
+                print(json.dumps(results, ensure_ascii=False, indent=2))
+            else:
+                for r in results:
+                    print(format_battery(r))
     except SwitchBotError as e:
         print(f"エラー: {e}", file=sys.stderr)
         return 1

@@ -9,11 +9,13 @@ DEVICES = [
     {"deviceId": "AAA", "deviceName": "リビング温湿度計", "deviceType": "MeterPro"},
     {"deviceId": "BBB", "deviceName": "寝室", "deviceType": "MeterPro(CO2)"},
     {"deviceId": "CCC", "deviceName": "ロボット掃除機", "deviceType": "Robot Vacuum Cleaner S10"},
+    {"deviceId": "DDD", "deviceName": "玄関の人感センサー", "deviceType": "Motion Sensor"},
 ]
 
 STATUS = {
     "AAA": {"temperature": 22.5, "humidity": 41, "battery": 90},
     "BBB": {"temperature": 21.0, "humidity": 48, "battery": 75, "CO2": 820},
+    "DDD": {"battery": 10, "moveDetected": False},
 }
 
 
@@ -48,6 +50,16 @@ class SwitchBotTest(unittest.TestCase):
         self.assertEqual(len(results), 1)
         with self.assertRaises(switchbot.SwitchBotError):
             switchbot.read_meters(FakeClient(), "台所")
+
+    def test_batteries(self):
+        results = switchbot.read_batteries(FakeClient())
+        self.assertEqual([r["deviceId"] for r in results], ["DDD", "BBB", "AAA"])
+        self.assertTrue(results[0]["low"])
+        self.assertFalse(results[1]["low"])
+        self.assertEqual(
+            switchbot.format_battery(results[0]),
+            "玄関の人感センサー（Motion Sensor）: 電池 10% ← 交換してください",
+        )
 
 
 if __name__ == "__main__":
