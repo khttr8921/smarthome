@@ -34,6 +34,17 @@ python3 switchbot.py battery          # 電池で動く機器の残量（少な�
 
 Claude Code では `.claude/skills/switchbot-meter/` のスキルが入っているので、「部屋の湿度は？」と聞くだけで読みにいきます。
 
+## 表示名を変える
+
+SwitchBot アプリの名前とは別の名前で表示したいときは、`devices.json` に deviceId ごとに書きます。
+屋外に置いた温湿度計には `"outdoor": true` を付けます（快適さの判定から外し、外気温として扱います）。
+
+```json
+{
+  "C6383032208D": {"name": "ベランダ", "outdoor": true}
+}
+```
+
 ## テスト
 
 ```bash

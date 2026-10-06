@@ -28,6 +28,13 @@ class FakeClient:
 
 
 class SwitchBotTest(unittest.TestCase):
+    def setUp(self):
+        self._load = switchbot.load_overrides
+        switchbot.load_overrides = lambda path=None: {}
+
+    def tearDown(self):
+        switchbot.load_overrides = self._load
+
     def test_sign(self):
         h = switchbot.make_headers("tok", "sec", t="1700000000000", nonce="n")
         expected = base64.b64encode(
@@ -60,6 +67,16 @@ class SwitchBotTest(unittest.TestCase):
             switchbot.format_battery(results[0]),
             "玄関の人感センサー（Motion Sensor）: 電池 10% ← 交換してください",
         )
+
+    def test_overrides(self):
+        overrides = {"BBB": {"name": "ベランダ", "outdoor": True}}
+        results = switchbot.read_meters(FakeClient(), overrides=overrides)
+        self.assertEqual(results[1]["name"], "ベランダ")
+        self.assertTrue(results[1]["outdoor"])
+        self.assertFalse(results[0]["outdoor"])
+        self.assertEqual(len(switchbot.read_meters(FakeClient(), "ベランダ", overrides)), 1)
+        names = [r["name"] for r in switchbot.read_batteries(FakeClient(), overrides)]
+        self.assertIn("ベランダ", names)
 
 
 if __name__ == "__main__":

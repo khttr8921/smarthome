@@ -30,6 +30,9 @@ import uuid
 
 API_BASE = "https://api.switch-bot.com/v1.1"
 
+# deviceId ごとの表示名と屋外かどうか（SwitchBot アプリの名前より優先）
+OVERRIDES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "devices.json")
+
 # 温度・湿度を返すデバイスの種類（deviceType）
 METER_TYPES = {
     "Meter",
@@ -120,6 +123,27 @@ class Client:
         return self.get(f"/devices/{device_id}/status")
 
 
+def load_overrides(path=OVERRIDES_PATH):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+
+def apply_overrides(devices, overrides):
+    """devices.json の表示名を deviceName に反映し、outdoor を付ける。"""
+    result = []
+    for d in devices:
+        o = overrides.get(d.get("deviceId"), {})
+        d = dict(d)
+        if o.get("name"):
+            d["deviceName"] = o["name"]
+        d["outdoor"] = bool(o.get("outdoor"))
+        result.append(d)
+    return result
+
+
 def find_meters(devices, query=None):
     meters = [d for d in devices if d.get("deviceType") in METER_TYPES]
     if query:
@@ -130,8 +154,9 @@ def find_meters(devices, query=None):
     return meters
 
 
-def read_meters(client, query=None):
-    meters = find_meters(client.devices(), query)
+def read_meters(client, query=None, overrides=None):
+    devices = apply_overrides(client.devices(), overrides if overrides is not None else load_overrides())
+    meters = find_meters(devices, query)
     if not meters:
         raise SwitchBotError(
             "温湿度計が見つかりません。"
@@ -148,14 +173,16 @@ def read_meters(client, query=None):
             "humidity": s.get("humidity"),
             "battery": s.get("battery"),
             "CO2": s.get("CO2"),
+            "outdoor": d["outdoor"],
         })
     return results
 
 
-def read_batteries(client):
+def read_batteries(client, overrides=None):
     """電池で動く機器の残量を、少ない順に返す。"""
     results = []
-    for d in client.devices():
+    devices = apply_overrides(client.devices(), overrides if overrides is not None else load_overrides())
+    for d in devices:
         if d.get("deviceType") not in BATTERY_TYPES:
             continue
         battery = client.status(d["deviceId"]).get("battery")
@@ -209,7 +236,7 @@ def main(argv=None):
     try:
         client = Client.from_env()
         if args.cmd == "devices":
-            devices = client.devices()
+            devices = apply_overrides(client.devices(), load_overrides())
             if args.json:
                 print(json.dumps(devices, ensure_ascii=False, indent=2))
             else:
